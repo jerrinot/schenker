@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""Control this laptop's keyboard LED via UPower, without sudo."""
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+brightness = Path('/sys/class/leds/schenker:white:kbd_backlight/brightness')
+actions = {'off': 0, 'dim': 1, 'bright': 2, '0': 0, '1': 1, '2': 2}
+args = sys.argv[1:]
+if len(args) > 1 or (args and args[0] not in {*actions, 'get'}):
+    raise SystemExit('Usage: backlight [get|off|dim|bright|0|1|2]')
+if not brightness.exists():
+    raise SystemExit('Backlight driver is not enabled. Run: sudo ./trial.sh enable')
+try:
+    if args and args[0] != 'get':
+        level = actions[args[0]]
+        subprocess.run([
+            'gdbus', 'call', '--system', '--dest', 'org.freedesktop.UPower',
+            '--object-path',
+            '/org/freedesktop/UPower/KbdBacklight/schenkerowhiteokbd_backlight',
+            '--method', 'org.freedesktop.UPower.KbdBacklight.SetBrightness',
+            str(level),
+        ], check=True, stdout=subprocess.DEVNULL)
+        time.sleep(0.2)  # The kernel LED core queues blocking writes.
+        actual = int(brightness.read_text())
+        if actual != level:
+            raise SystemExit(f'Readback mismatch: requested {level}, got {actual}')
+    print(brightness.read_text().strip())
+except (OSError, subprocess.CalledProcessError) as error:
+    raise SystemExit(str(error)) from error
