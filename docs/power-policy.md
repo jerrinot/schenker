@@ -12,7 +12,8 @@ preference. Keep the drop-ins with the service when reproducing this setup.
 The policy polls every two seconds and requests performance priority when the
 saved desktop preference is enabled (the default) and:
 
-- The online USB-C PD/PD-PPS source reports at least 19 V and 100 W.
+- The online USB-C PD/PD-PPS source reports at least 19 V and 100 W, or the
+  embedded-controller fallback below reports at least 100 W.
 - Battery charge has not fallen below 30%; after doing so it must recover to 35%.
 - Reported battery discharge is at most 3 W.
 
@@ -28,6 +29,15 @@ current across advertised source PDOs and cannot alone establish the selected
 budget. Neither field independently verifies a cable's rating. Firmware reporting
 errors can therefore make the policy overestimate available power. The GNOME menu
 labels this value as reported power, and the service does not claim cable verification.
+
+On the VISION E22, the left USB-C port can supply external power while both UCSI
+ports report disconnected. When no UCSI source is online, the service falls back
+to `firmware_power_targets` only if `AC0/online` is 1 and exactly one EC port budget
+is nonzero. Missing, malformed or ambiguous readings leave performance ineligible.
+An online UCSI source always takes precedence, including a lower or unknown budget.
+The EC values are cached firmware reports, not measured input power; requiring AC
+prevents a stale budget alone from enabling performance after disconnect. The
+status JSON records `supply_source` as `ucsi`, `ec` or `none` alongside `supply_w`.
 
 The charging default accepts `standard`, `long_life`, `trickle`, or an empty
 value to leave it unmanaged. A saved desktop selection overrides this default.

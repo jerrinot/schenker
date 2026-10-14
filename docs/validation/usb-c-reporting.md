@@ -37,3 +37,26 @@ rating. See the [Linux UCSI power-supply implementation](https://github.com/torv
 for the meanings of these fields. The earlier performance difference remains
 unexplained by this comparison; a cable-controlled load test or PD analyzer would
 be needed to investigate it further.
+
+## Left port missing from UCSI
+
+With the charger on the left port, `AC0/online` was 1 and the EC reported
+`port1_w=0 port2_w=100`. Both UCSI power supplies reported offline with zero voltage
+and current. Fresh GET_CONNECTOR_STATUS queries for both connectors also reported
+disconnected, so this was not just an outdated power-supply sysfs reading.
+
+During a user-operated unplug/reconnect on 2026-10-14, half-second polling captured:
+
+| State | AC online | EC port 1 / port 2 | Both UCSI supplies |
+| --- | --- | --- | --- |
+| Connected left | 1 | 0 / 100 W | Offline |
+| Unplugged | 0 | 0 / 0 W | Offline |
+| Reconnecting, one sample | 0 | 0 / 100 W | Offline |
+| Reconnected left | 1 | 0 / 100 W | Offline |
+
+The policy now uses the EC budget when UCSI has no online supply, provided AC is
+present and exactly one EC port reports a nonzero budget. This fixes left-port
+detection without overriding a lower UCSI report. Tests cover disconnect with a
+stale EC value, reconnect, lower budgets and unavailable or ambiguous reports.
+This observation does not establish why UCSI misses the port or verify the cable
+rating. No driver reload or firmware modification was needed.

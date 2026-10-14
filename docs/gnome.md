@@ -61,7 +61,7 @@ Read-only D-Bus properties:
 | `Priority` | Verified firmware setting: `charging` or `performance` |
 | `Reason` | `starting`, `user`, `ready`, `supply`, `battery`, `discharge`, or `temperature` |
 | `Description` | Human-readable reason for the current decision |
-| `SupplyWatts` | UCSI-reported eligible power budget, not a verified cable rating |
+| `SupplyWatts` | Firmware-reported eligible power budget from UCSI or the EC fallback, not a verified cable rating |
 | `BatteryPercent` | Battery charge percentage |
 | `Ready` | Whether an initial hardware update has completed |
 | `ChargingProfile` | Verified active firmware profile; empty when unavailable |

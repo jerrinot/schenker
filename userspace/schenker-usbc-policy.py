@@ -48,6 +48,32 @@ def reported_usb_c_budget(sources):
     return watts
 
 
+def reported_supply(power_supply, targets):
+    """Prefer UCSI; use the EC for a single supply invisible to UCSI.
+
+    The VISION E22's left port can power the laptop while both UCSI ports
+    report disconnected. EC port budgets are cached, so require AC present.
+    Never replace an online UCSI source's lower or unknown budget with EC data.
+    """
+    online = [source for source in power_supply.glob('ucsi-source-psy-*')
+              if (source / 'online').read_text().strip() == '1']
+    if online:
+        return dict(supply_w=reported_usb_c_budget(online), supply_source='ucsi')
+    try:
+        if (power_supply / 'AC0/online').read_text().strip() == '1':
+            fields = dict(field.split('=') for field in targets.read_text().split())
+            budgets = [int(fields[name]) for name in ('port1_w', 'port2_w')]
+            # These are byte registers. With two nonzero reports we cannot
+            # establish which port is supplying power from this interface.
+            if all(0 <= value <= 255 for value in budgets):
+                active = [value for value in budgets if value > 0]
+                if len(active) == 1:
+                    return dict(supply_w=active[0], supply_source='ec')
+    except (OSError, ValueError, KeyError):
+        pass  # Optional fallback unavailable; leave performance ineligible.
+    return dict(supply_w=0, supply_source='none')
+
+
 class Hardware:
     def validate_driver(self):
         driver = (PRIORITY.parent / 'driver').resolve().name
@@ -90,7 +116,8 @@ class Hardware:
         return (RAPL / 'enabled').read_text().strip() == '1'
 
     def snapshot(self):
-        watts = reported_usb_c_budget(Path('/sys/class/power_supply').glob('ucsi-source-psy-*'))
+        supply = reported_supply(Path('/sys/class/power_supply'),
+                                 PRIORITY.with_name('firmware_power_targets'))
         bat = Path('/sys/class/power_supply/BAT0')
         discharge = 0
         if (bat / 'status').read_text().strip() == 'Discharging':
@@ -102,7 +129,7 @@ class Hardware:
                 temps.extend(int(t.read_text()) / 1000 for t in p.glob('temp*_input'))
         if not temps or any(t <= 0 or t >= 125 for t in temps):
             raise RuntimeError('CPU temperature sensors unavailable or implausible')
-        return dict(supply_w=watts, battery_pct=int((bat / 'capacity').read_text()),
+        return dict(**supply, battery_pct=int((bat / 'capacity').read_text()),
                     discharge_w=discharge, temp_c=max(temps))
 
 

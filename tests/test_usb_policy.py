@@ -46,6 +46,65 @@ class SupplyBudgetTests(unittest.TestCase):
             self.write(**restored)
 
 
+class SupplyFallbackTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        (self.root / 'AC0').mkdir()
+        self.ac = self.root / 'AC0/online'
+        self.ac.write_text('1')
+        self.targets = self.root / 'firmware_power_targets'
+        self.targets.write_text('pl1_w=35 pl2_w=35 pl4_w=50 port1_w=0 port2_w=100\n')
+        self.source = self.root / 'ucsi-source-psy-test'
+        self.source.mkdir()
+        (self.source / 'online').write_text('0')
+
+    def supply(self):
+        return p.reported_supply(self.root, self.targets)
+
+    def test_left_port_100w_qualifies_when_ucsi_is_offline(self):
+        supply = self.supply()
+        self.assertEqual(supply, dict(supply_w=100, supply_source='ec'))
+        snapshot = supply | dict(battery_pct=94, discharge_w=0, temp_c=50)
+        self.assertTrue(p.Gate().evaluate(snapshot, 0).startswith('performance:'))
+
+    def test_disconnect_ignores_stale_ec_budget_and_reconnect_recovers(self):
+        self.ac.write_text('0')
+        self.assertEqual(self.supply()['supply_w'], 0)
+        self.ac.write_text('1')
+        self.assertEqual(self.supply()['supply_w'], 100)
+
+    def test_lower_ec_budget_does_not_qualify(self):
+        self.targets.write_text('port1_w=0 port2_w=65')
+        supply = self.supply()
+        self.assertEqual(supply['supply_w'], 65)
+        snapshot = supply | dict(battery_pct=94, discharge_w=0, temp_c=50)
+        self.assertTrue(p.Gate().evaluate(snapshot, 0).startswith('charging:'))
+
+    def test_online_ucsi_lower_or_unknown_budget_is_not_overridden(self):
+        for name, value in dict(online=1, usb_type='C [PD] PD_PPS',
+                                voltage_now=20_000_000, current_now=3_000_000,
+                                current_max=5_000_000).items():
+            (self.source / name).write_text(str(value))
+        self.assertEqual(self.supply(), dict(supply_w=60, supply_source='ucsi'))
+        (self.source / 'current_now').write_text('0')
+        self.assertEqual(self.supply(), dict(supply_w=0, supply_source='ucsi'))
+        (self.source / 'usb_type').write_text('[C] PD PD_PPS')
+        self.assertEqual(self.supply(), dict(supply_w=0, supply_source='ucsi'))
+
+    def test_missing_or_malformed_fallback_does_not_qualify(self):
+        for contents in ('', 'port1_w=0', 'port1_w=0 port2_w=bad',
+                         'port1_w=0 port2_w=256', 'port1_w=-1 port2_w=100',
+                         'port1_w=0 port2_w=0', 'port1_w=65 port2_w=100'):
+            self.targets.write_text(contents)
+            self.assertEqual(self.supply()['supply_w'], 0, contents)
+        self.targets.unlink()
+        self.assertEqual(self.supply()['supply_w'], 0)
+        self.ac.unlink()
+        self.assertEqual(self.supply()['supply_w'], 0)
+
+
 class FakeHardware:
     def __init__(self):
         self.priority = 'charging'
