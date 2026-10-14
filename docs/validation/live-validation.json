@@ -1,0 +1,233 @@
+{
+  "hwmon": "/sys/class/hwmon/hwmon9",
+  "started": 1792006109.780477,
+  "checks": {
+    "automatic_default": true,
+    "shared_cpu_source": true,
+    "telemetry": true,
+    "last_point_mapping": true,
+    "reject:pwm1_enable=1": true,
+    "unchanged:pwm1_enable=1": true,
+    "reject:pwm1_enable=4294967298": true,
+    "unchanged:pwm1_enable=4294967298": true,
+    "reject:pwm1_auto_point12_temp=85000": true,
+    "unchanged:pwm1_auto_point12_temp=85000": true,
+    "reject:pwm1_auto_point12_temp=88500": true,
+    "unchanged:pwm1_auto_point12_temp=88500": true,
+    "reject:pwm1_auto_point12_temp_hyst=91000": true,
+    "unchanged:pwm1_auto_point12_temp_hyst=91000": true,
+    "reject:pwm1_auto_point2_pwm=0": true,
+    "unchanged:pwm1_auto_point2_pwm=0": true,
+    "reject:pwm1_auto_point11_pwm=256": true,
+    "unchanged:pwm1_auto_point11_pwm=256": true,
+    "reject:pwm1_auto_point12_pwm=100": true,
+    "unchanged:pwm1_auto_point12_pwm=100": true,
+    "reject:pwm1_auto_point1_temp=1000": true,
+    "unchanged:pwm1_auto_point1_temp=1000": true,
+    "reject:pwm1_auto_point11_pwm=junk": true,
+    "unchanged:pwm1_auto_point11_pwm=junk": true,
+    "active_point_write": true,
+    "hysteresis_mapping": true,
+    "restored_default_points": true,
+    "stock_mode": true,
+    "stage_without_hardware_writes": true,
+    "staged_curve_applied": true,
+    "pwm_scale_round_trip": true,
+    "full_speed_table": true,
+    "edit_while_full_speed": true,
+    "full_speed_without_lease": true,
+    "default_curve_and_mode_restored": true
+  },
+  "full_speed_samples": [
+    {
+      "s": 5,
+      "fan1_rpm": 2949,
+      "fan2_rpm": 2974,
+      "pwm1": 79,
+      "pwm2": 79,
+      "mode": 0
+    },
+    {
+      "s": 10,
+      "fan1_rpm": 3363,
+      "fan2_rpm": 3348,
+      "pwm1": 92,
+      "pwm2": 92,
+      "mode": 0
+    },
+    {
+      "s": 15,
+      "fan1_rpm": 3750,
+      "fan2_rpm": 3730,
+      "pwm1": 105,
+      "pwm2": 105,
+      "mode": 0
+    },
+    {
+      "s": 20,
+      "fan1_rpm": 4045,
+      "fan2_rpm": 4154,
+      "pwm1": 119,
+      "pwm2": 119,
+      "mode": 0
+    },
+    {
+      "s": 25,
+      "fan1_rpm": 4338,
+      "fan2_rpm": 4373,
+      "pwm1": 131,
+      "pwm2": 131,
+      "mode": 0
+    },
+    {
+      "s": 30,
+      "fan1_rpm": 4697,
+      "fan2_rpm": 4739,
+      "pwm1": 145,
+      "pwm2": 145,
+      "mode": 0
+    }
+  ],
+  "restored_default_curve": true,
+  "extended_full_speed_samples": [
+    {
+      "s": 5.0,
+      "fan1_rpm": 2978,
+      "fan2_rpm": 2933,
+      "pwm1": 77,
+      "pwm2": 77,
+      "mode": 0
+    },
+    {
+      "s": 10.1,
+      "fan1_rpm": 3363,
+      "fan2_rpm": 3317,
+      "pwm1": 89,
+      "pwm2": 89,
+      "mode": 0
+    },
+    {
+      "s": 15.3,
+      "fan1_rpm": 3648,
+      "fan2_rpm": 3711,
+      "pwm1": 102,
+      "pwm2": 102,
+      "mode": 0
+    },
+    {
+      "s": 20.4,
+      "fan1_rpm": 4015,
+      "fan2_rpm": 4114,
+      "pwm1": 116,
+      "pwm2": 116,
+      "mode": 0
+    },
+    {
+      "s": 25.6,
+      "fan1_rpm": 4338,
+      "fan2_rpm": 4347,
+      "pwm1": 130,
+      "pwm2": 130,
+      "mode": 0
+    },
+    {
+      "s": 30.7,
+      "fan1_rpm": 4637,
+      "fan2_rpm": 4667,
+      "pwm1": 143,
+      "pwm2": 143,
+      "mode": 0
+    },
+    {
+      "s": 35.9,
+      "fan1_rpm": 4889,
+      "fan2_rpm": 4823,
+      "pwm1": 156,
+      "pwm2": 156,
+      "mode": 0
+    },
+    {
+      "s": 41.0,
+      "fan1_rpm": 5208,
+      "fan2_rpm": 5233,
+      "pwm1": 170,
+      "pwm2": 170,
+      "mode": 0
+    },
+    {
+      "s": 46.1,
+      "fan1_rpm": 5458,
+      "fan2_rpm": 5404,
+      "pwm1": 184,
+      "pwm2": 184,
+      "mode": 0
+    },
+    {
+      "s": 51.3,
+      "fan1_rpm": 5689,
+      "fan2_rpm": 5750,
+      "pwm1": 196,
+      "pwm2": 196,
+      "mode": 0
+    },
+    {
+      "s": 56.4,
+      "fan1_rpm": 5940,
+      "fan2_rpm": 5923,
+      "pwm1": 209,
+      "pwm2": 209,
+      "mode": 0
+    },
+    {
+      "s": 61.6,
+      "fan1_rpm": 6125,
+      "fan2_rpm": 6143,
+      "pwm1": 223,
+      "pwm2": 223,
+      "mode": 0
+    },
+    {
+      "s": 66.7,
+      "fan1_rpm": 6341,
+      "fan2_rpm": 6304,
+      "pwm1": 236,
+      "pwm2": 236,
+      "mode": 0
+    },
+    {
+      "s": 71.9,
+      "fan1_rpm": 6494,
+      "fan2_rpm": 6534,
+      "pwm1": 250,
+      "pwm2": 250,
+      "mode": 0
+    },
+    {
+      "s": 77.0,
+      "fan1_rpm": 6675,
+      "fan2_rpm": 6696,
+      "pwm1": 255,
+      "pwm2": 255,
+      "mode": 0
+    },
+    {
+      "s": 82.1,
+      "fan1_rpm": 6696,
+      "fan2_rpm": 6696,
+      "pwm1": 255,
+      "pwm2": 255,
+      "mode": 0
+    },
+    {
+      "s": 87.3,
+      "fan1_rpm": 6675,
+      "fan2_rpm": 6675,
+      "pwm1": 255,
+      "pwm2": 255,
+      "mode": 0
+    }
+  ],
+  "sensors": "schenker-isa-0000\nAdapter: ISA adapter\nFan 1 (shared CPU curve): 5085 RPM\nFan 2 (shared CPU curve): 5085 RPM\nCPU EC:                    +46.0\u00b0C  \npwm1:                          79%\npwm2:                          79%\n\n",
+  "fan_daemon_inactive": true,
+  "completed": 1792006329.522514
+}

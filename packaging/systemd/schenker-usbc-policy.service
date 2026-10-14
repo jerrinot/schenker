@@ -1,0 +1,26 @@
+[Unit]
+Description=SCHENKER VISION E22 USB-C performance policy
+After=systemd-modules-load.service
+ConditionPathExists=/sys/devices/platform/INOU0000:00/usb_c_power_priority
+
+[Service]
+Type=simple
+ExecStart=/usr/local/libexec/schenker-usbc-policy.py
+Restart=on-failure
+RestartSec=5
+RestartPreventExitStatus=78
+TimeoutStopSec=10
+RuntimeDirectory=schenker-usbc-policy
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+ProtectKernelModules=yes
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

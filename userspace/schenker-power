@@ -1,0 +1,82 @@
+#!/usr/bin/python3
+"""Show SCHENKER power and cooling status without changing system state."""
+import argparse
+import json
+from pathlib import Path
+import time
+
+DEVICE = Path('/sys/devices/platform/INOU0000:00')
+RAPL = Path('/sys/class/powercap/intel-rapl:0')
+
+
+def read(path):
+    try:
+        return Path(path).read_text().strip()
+    except FileNotFoundError:
+        return None
+
+
+def temperatures():
+    values = []
+    for p in Path('/sys/class/hwmon').glob('hwmon*'):
+        if read(p / 'name') == 'coretemp':
+            values.extend(int(t.read_text()) / 1000 for t in p.glob('temp*_input'))
+    if not values or any(t <= 0 or t >= 125 for t in values):
+        raise RuntimeError('CPU temperature unavailable or implausible')
+    return max(values)
+
+
+def snapshot():
+    policy_text = read('/run/schenker-usbc-policy/status.json')
+    policy = json.loads(policy_text) if policy_text else None
+    supplies = {}
+    for p in Path('/sys/class/power_supply').glob('*'):
+        supplies[p.name] = {k: v for k, v in (
+            (k, read(p / k)) for k in ('online', 'usb_type', 'voltage_now',
+                                      'current_max', 'current_now', 'capacity', 'status'))
+                            if v is not None}
+    return dict(timestamp=time.time(), driver_version=read('/sys/module/schenker_kbd/version'),
+                priority=read(DEVICE / 'usb_c_power_priority'),
+                charging_profile=read(DEVICE / 'charging_profile'),
+                fan_status=read(DEVICE / 'fan_status'),
+                firmware_fan_curve=read(DEVICE / 'fan_curve_status'),
+                firmware_reported_targets=read(DEVICE / 'firmware_power_targets'),
+                target_caveat='Firmware cache/targets, not actual CPU PECI limit readback',
+                host_caps_uw={str(i): read(RAPL / f'constraint_{i}_power_limit_uw') for i in (0, 1)},
+                cpu_temperature_c=temperatures(), supplies=supplies, policy=policy,
+                policy_age_s=round(time.time()-policy['updated'], 1) if policy else None)
+
+
+def show(s):
+    if s.get('firmware_fan_curve'):
+        print(f"Firmware fan curve: {s['firmware_fan_curve']}")
+    if s.get('fan_status'):
+        print(f"Fans: {s['fan_status']}")
+    print(f"USB-C priority: {s['priority']}; charging profile: {s['charging_profile']}")
+    print(f"Firmware-reported targets: {s['firmware_reported_targets']} (not CPU readback)")
+    print(f"Host caps (uW): {s['host_caps_uw']}; CPU: {s['cpu_temperature_c']} C")
+    if s['policy']:
+        print(f"Policy: {s['policy']['state']} (status {s['policy_age_s']} s old)")
+        if s['policy'].get('charging_profile_error'):
+            print(f"Charging profile error: {s['policy']['charging_profile_error']}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--json', action='store_true', help='Print JSON')
+    args = parser.parse_args()
+    try:
+        status = snapshot()
+    except PermissionError as error:
+        parser.exit(1, f'Permission denied reading {error.filename}; run with sudo.\n')
+    except (OSError, ValueError, RuntimeError) as error:
+        parser.exit(1, f'Cannot read status: {error}\n')
+    if args.json:
+        print(json.dumps(status, indent=2))
+    else:
+        show(status)
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

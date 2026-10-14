@@ -11,7 +11,7 @@ args = sys.argv[1:]
 if len(args) > 1 or (args and args[0] not in {*actions, 'get'}):
     raise SystemExit('Usage: backlight [get|off|dim|bright|0|1|2]')
 if not brightness.exists():
-    raise SystemExit('Backlight driver is not enabled. Run: sudo ./trial.sh enable')
+    raise SystemExit('Backlight driver is not enabled. Install the driver with install.sh from the schenker repository.')
 try:
     if args and args[0] != 'get':
         level = actions[args[0]]

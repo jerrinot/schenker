@@ -1,9 +1,11 @@
-obj-m += schenker_kbd.o
-KDIR ?= /lib/modules/$(shell uname -r)/build
+# Repository entry points. driver/ is also the self-contained DKMS source.
+.DEFAULT_GOAL := all
+.PHONY: all clean test check-installed
+all clean:
+	$(MAKE) -C driver $@
 
-.PHONY: all clean
-all:
-	$(MAKE) -C $(KDIR) M=$(CURDIR) W=1 modules
+test:
+	./tests/run.sh
 
-clean:
-	$(MAKE) -C $(KDIR) M=$(CURDIR) clean
+check-installed:
+	python3 tests/check-installed.py

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd -- "$(dirname -- "$(realpath -- "$0")")"
+script_dir=$(dirname -- "$(realpath -- "$0")")
+cd -- "$script_dir/../driver"
 device=/sys/bus/platform/devices/INOU0000:00
 led=/sys/class/leds/schenker:white:kbd_backlight
 action=${1:-status}
@@ -59,4 +60,4 @@ if [[ $action == enable && ! -d "$led" ]]; then
     exit 1
 fi
 loaded=0
-echo "Driver left loaded for testing; unload with: sudo $PWD/trial.sh disable"
+echo "Driver left loaded for testing; unload with: sudo $script_dir/trial.sh disable"

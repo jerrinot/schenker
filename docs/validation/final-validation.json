@@ -1,0 +1,40 @@
+{
+  "autonomous_with_userspace_services_stopped": "configured=1 active=1 error=0 requested_mode=2 manual=1 output=1 selected=1 ec_temp_c=54 stage=1 target_pwm=50",
+  "restore_on_unload": {
+    "curve_ram_matches": true,
+    "stock_selectors": true,
+    "original_manual": true
+  },
+  "runtime_version": "0.6.0",
+  "fan_curve_status": "configured=1 active=1 error=0 requested_mode=2 manual=1 output=1 selected=1 ec_temp_c=53 stage=1 target_pwm=50",
+  "fan_status": "fan1_rpm=2629 fan2_rpm=2579 pwm1=50 pwm2=50 mode=0x00",
+  "installed_versions": {
+    "7.0.0-34-generic": "0.6.0",
+    "7.0.0-38-generic": "0.6.0"
+  },
+  "fan_daemon_active": false,
+  "fan_daemon_enabled": false,
+  "usb_service": "active",
+  "priority": "performance",
+  "charging_profile": "trickle",
+  "backlight_present": true,
+  "fan_boost_interface_hidden": true,
+  "physical_suspend_or_reboot_tested": false,
+  "dkms": "schenker-kbd/0.1.0, 7.0.0-34-generic, x86_64: built\nschenker-kbd/0.1.0, 7.0.0-38-generic, x86_64: built\nschenker-kbd/0.2.0, 7.0.0-34-generic, x86_64: built\nschenker-kbd/0.2.0, 7.0.0-38-generic, x86_64: built\nschenker-kbd/0.3.0, 7.0.0-34-generic, x86_64: built\nschenker-kbd/0.3.0, 7.0.0-38-generic, x86_64: built\nschenker-kbd/0.4.0, 7.0.0-34-generic, x86_64: built\nschenker-kbd/0.4.0, 7.0.0-38-generic, x86_64: built\nschenker-kbd/0.5.0, 7.0.0-34-generic, x86_64: built\nschenker-kbd/0.5.0, 7.0.0-38-generic, x86_64: built\nschenker-kbd/0.6.0, 7.0.0-34-generic, x86_64: installed\nschenker-kbd/0.6.0, 7.0.0-38-generic, x86_64: installed\nvirtualbox/7.2.6, 7.0.0-34-generic, x86_64: installed\nvirtualbox/7.2.6, 7.0.0-38-generic, x86_64: installed\nvmware-host-modules/17.6.3-local, 7.0.0-34-generic, x86_64: installed\nvmware-host-modules/17.6.3-local, 7.0.0-38-generic, x86_64: installed",
+  "hwmon_path": "/sys/class/hwmon/hwmon9",
+  "hwmon": {
+    "temp1_input": "57000",
+    "fan1_input": "2629",
+    "fan2_input": "2582",
+    "pwm1": "64",
+    "pwm2": "64",
+    "pwm1_enable": "2",
+    "pwm2_enable": "2",
+    "pwm1_auto_point12_temp": "90000",
+    "pwm1_auto_point12_temp_hyst": "87000",
+    "pwm1_auto_point12_pwm": "255"
+  },
+  "curve_point_count": 12,
+  "sensors": "schenker-isa-0000\nAdapter: ISA adapter\nFan 1 (shared CPU curve): 2629 RPM\nFan 2 (shared CPU curve): 2582 RPM\nCPU EC:                    +57.0\u00b0C  \npwm1:                          32%\npwm2:                          32%",
+  "completed": 1792006390.5884502
+}
