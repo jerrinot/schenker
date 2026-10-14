@@ -24,6 +24,9 @@ MANAGED = (
     f'etc/systemd/system/{SERVICE}',
     f'etc/systemd/system/{SERVICE}.d/charging-profile.conf',
     f'etc/systemd/system/{SERVICE}.d/firmware-profile.conf',
+    'usr/local/libexec/schenker_usbc_dbus.py',
+    'etc/dbus-1/system.d/io.github.jerrinot.Schenker.Power.conf',
+    'usr/share/polkit-1/actions/io.github.jerrinot.schenker.policy',
 )
 
 
@@ -34,7 +37,7 @@ class InstallFlowTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
         for directory in ('etc', 'var/lib', 'var/tmp', 'tmp', 'sys', 'boot',
-                          'usr/src', 'usr/local', 'lib/modules', 'mock-bin'):
+                          'usr/src', 'usr/local', 'usr/share/polkit-1/actions', 'lib/modules', 'mock-bin'):
             (self.root / directory).mkdir(parents=True, exist_ok=True)
         self.state = dict(installed={k: '0.6.0' for k in KERNELS}, loaded='0.6.0',
                           parameters=dict(writable='Y', usb_c_policy='Y',
@@ -70,7 +73,7 @@ class InstallFlowTests(unittest.TestCase):
         command = ['bwrap', '--unshare-all', '--uid', '0', '--gid', '0',
                    '--ro-bind', '/', '/', '--dev', '/dev', '--proc', '/proc']
         for directory in ('etc', 'var/lib', 'var/tmp', 'tmp', 'sys', 'boot',
-                          'usr/src', 'usr/local', 'lib/modules'):
+                          'usr/src', 'usr/local', 'usr/share/polkit-1/actions', 'lib/modules'):
             command += ['--bind', str(self.root / directory), '/' + directory]
         command += ['--ro-bind', str(self.root / 'mock-bin'), '/usr/sbin',
                     '--chdir', str(ROOT), '/bin/bash', str(ROOT / 'install.sh'), action]

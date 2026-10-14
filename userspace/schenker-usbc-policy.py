@@ -27,6 +27,27 @@ class Conflict(RuntimeError):
     pass
 
 
+def reported_usb_c_budget(sources):
+    """UCSI's reported PD budget, not measured draw or verified cable capacity.
+
+    In the UCSI power_supply driver, current_now is the RDO operating current;
+    current_max is the largest current across the advertised source PDOs.
+    """
+    watts = 0
+    for source in sources:
+        if (source / 'online').read_text().strip() != '1':
+            continue
+        usb_type = (source / 'usb_type').read_text()
+        if '[PD]' not in usb_type and '[PD_PPS]' not in usb_type:
+            continue
+        voltage = int((source / 'voltage_now').read_text())
+        current = min(int((source / 'current_now').read_text()),
+                      int((source / 'current_max').read_text()))
+        if voltage >= 19_000_000 and current > 0:
+            watts = max(watts, voltage * current / 1e12)
+    return watts
+
+
 class Hardware:
     def validate_driver(self):
         driver = (PRIORITY.parent / 'driver').resolve().name
@@ -69,17 +90,7 @@ class Hardware:
         return (RAPL / 'enabled').read_text().strip() == '1'
 
     def snapshot(self):
-        watts = 0
-        for p in Path('/sys/class/power_supply').glob('ucsi-source-psy-*'):
-            if (p / 'online').read_text().strip() != '1':
-                continue
-            usb_type = (p / 'usb_type').read_text()
-            if '[PD]' not in usb_type and '[PD_PPS]' not in usb_type:
-                continue
-            voltage = int((p / 'voltage_now').read_text())
-            current = int((p / 'current_max').read_text())
-            if voltage >= 19_000_000:
-                watts = max(watts, voltage * current / 1e12)
+        watts = reported_usb_c_budget(Path('/sys/class/power_supply').glob('ucsi-source-psy-*'))
         bat = Path('/sys/class/power_supply/BAT0')
         discharge = 0
         if (bat / 'status').read_text().strip() == 'Discharging':
@@ -128,6 +139,7 @@ class Gate:
         self.hot = False
         self.cool_until = 0
         self.low_battery = False
+        self.reason = 'starting'
 
     def evaluate(self, s, now):
         if not FIRMWARE_LIMITS and s['temp_c'] >= 94 and not self.hot:
@@ -139,16 +151,21 @@ class Gate:
         elif s['battery_pct'] >= 35:
             self.low_battery = False
         if s['supply_w'] < 100:
+            self.reason = 'supply'
             return 'charging: supply below 100 W or disconnected'
         if self.low_battery:
+            self.reason = 'battery'
             return 'charging: low battery (resume at 35%)'
         if s['discharge_w'] > 3:
+            self.reason = 'discharge'
             return 'charging: battery discharge exceeds 3 W'
         if self.hot:
+            self.reason = 'temperature'
             return 'charging: thermal cooldown (60 s and <=80 C)'
+        self.reason = 'ready'
         if FIRMWARE_LIMITS:
-            return 'performance: verified 100 W supply, firmware CPU limits (no added cap)'
-        return 'performance: verified 100 W supply, CPU capped at 40 W'
+            return 'performance: firmware reports at least 100 W, firmware CPU limits (no added cap)'
+        return 'performance: firmware reports at least 100 W, CPU capped at 40 W'
 
 
 class Journal:
@@ -229,60 +246,104 @@ class Controller:
         self.hw.set_priority('performance')
 
 
+class Policy:
+    def __init__(self, hw, controller, preferred):
+        self.hw, self.controller, self.preferred = hw, controller, preferred
+        self.gate = Gate()
+        self.charge = ChargePreference(preferred.charging_profile)
+        self.last_state = None
+
+    def update(self):
+        hw, controller, charge = self.hw, self.controller, self.charge
+        snapshot = hw.snapshot()
+        state = self.gate.evaluate(snapshot, time.monotonic())
+        reason = self.gate.reason
+        if not self.preferred.enabled:
+            state, reason = 'charging: selected by user', 'user'
+        if state.startswith('performance:'):
+            controller.activate()
+        elif controller.saved or hw.get_priority() != 'charging':
+            controller.deactivate()
+        if state != self.last_state:
+            logging.info('%s; telemetry=%s', state, snapshot)
+            self.last_state = state
+        # A charging-preference failure must not restart/toggle the power policy.
+        if charge.desired != self.preferred.charging_profile:
+            charge.desired = self.preferred.charging_profile
+            charge.next_restore = 0  # An explicit new choice takes effect immediately.
+        try:
+            actual_charge = charge.reconcile(hw, time.monotonic())
+            charge_error = None
+        except (OSError, RuntimeError) as exc:
+            actual_charge, charge_error = None, str(exc)
+            if charge.state != 'error':
+                logging.error('Charging profile restore failed: %s', exc)
+            charge.state = 'error'
+        return dict(state=state, reason=reason,
+                    performance_preferred=self.preferred.enabled,
+                    telemetry=snapshot, caps_uw=hw.caps(),
+                    charging_profile=actual_charge,
+                    desired_charging_profile=charge.desired or None,
+                    charging_profile_state=charge.state,
+                    charging_profile_error=charge_error,
+                    priority=hw.get_priority(), updated=time.time())
+
+
 def main():
+    from gi.repository import GLib, GLibUnix
+    from schenker_usbc_dbus import Preferences, PowerBus
+
     logging.basicConfig(level=logging.INFO, format='%(message)s')
     RUNTIME.mkdir(mode=0o700, exist_ok=True)
     with (RUNTIME / 'lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        stopping = False
-
-        def stop(_sig, _frame):
-            nonlocal stopping
-            stopping = True
-
-        signal.signal(signal.SIGTERM, stop)
-        signal.signal(signal.SIGINT, stop)
+        loop = GLib.MainLoop()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, sig, loop.quit)
         hw = Hardware()
         hw.validate_driver()
         logging.info('Power profile: %s', PROFILE)
         # Even a corrupt journal must not leave performance priority active.
         hw.set_priority('charging')
         controller = Controller(hw, Journal(RUNTIME / 'caps.json'))
-        gate, last_state = Gate(), None
-        charge = ChargePreference(DESIRED_CHARGE_PROFILE)
-        try:
-            controller.deactivate()  # Recover any interrupted earlier activation.
-            while not stopping:
-                snapshot = hw.snapshot()
-                state = gate.evaluate(snapshot, time.monotonic())
-                if state.startswith('performance:'):
-                    controller.activate()
-                elif controller.saved or hw.get_priority() != 'charging':
-                    controller.deactivate()
-                if state != last_state:
-                    logging.info('%s; telemetry=%s', state, snapshot)
-                    last_state = state
-                # A charging-preference failure must not restart/toggle the power policy.
-                try:
-                    actual_charge = charge.reconcile(hw, time.monotonic())
-                    charge_error = None
-                except (OSError, RuntimeError) as exc:
-                    actual_charge, charge_error = None, str(exc)
-                    if charge.state != 'error':
-                        logging.error('Charging profile restore failed: %s', exc)
-                    charge.state = 'error'
-                status = dict(state=state, telemetry=snapshot, caps_uw=hw.caps(),
-                              charging_profile=actual_charge,
-                              desired_charging_profile=DESIRED_CHARGE_PROFILE or None,
-                              charging_profile_state=charge.state,
-                              charging_profile_error=charge_error,
-                              priority=hw.get_priority(), updated=time.time())
+        bus, failure = None, None
+
+        def disconnected():
+            nonlocal failure
+            failure = RuntimeError('System D-Bus connection lost')
+            loop.quit()
+
+        def update():
+            nonlocal failure
+            try:
+                status = policy.update()
                 tmp = RUNTIME / 'status.tmp'
                 tmp.write_text(json.dumps(status, indent=2) + '\n')
                 tmp.replace(RUNTIME / 'status.json')
-                time.sleep(2)
+                bus.publish(status)
+                return GLib.SOURCE_CONTINUE
+            except Exception as exc:
+                failure = exc
+                loop.quit()
+                return GLib.SOURCE_REMOVE
+
+        try:
+            controller.deactivate()  # Recover any interrupted earlier activation.
+            preferred = Preferences(Path('/var/lib/schenker-usbc-policy/preference.json'),
+                                    DESIRED_CHARGE_PROFILE)
+            policy = Policy(hw, controller, preferred)
+            bus = PowerBus(preferred, update, disconnected)
+            if update():
+                GLib.timeout_add_seconds(2, update)
+                loop.run()
+            if failure:
+                raise failure
         finally:
-            controller.deactivate()
+            try:
+                if bus:
+                    bus.close()
+            finally:
+                controller.deactivate()
             (RUNTIME / 'status.json').write_text(json.dumps(dict(
                 state='stopped', priority=hw.get_priority(), caps_uw=hw.caps(),
                 updated=time.time()), indent=2) + '\n')

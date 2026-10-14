@@ -10,7 +10,8 @@ using the EC temperature sensor. Fan control needs no userspace daemon.
 
 ## Install and use
 
-Requires DKMS, a C compiler, Python 3, systemd, initramfs-tools and kernel headers.
+Requires DKMS, a C compiler, Python 3 with PyGObject (`python3-gi`), Polkit,
+system D-Bus, systemd, initramfs-tools and kernel headers.
 On Ubuntu, keep `linux-headers-generic` installed for kernel updates.
 
 ```sh
@@ -28,6 +29,21 @@ power cap) and Trickle charging. Performance priority is gated on a reported
 The default custom curve returns at boot. Runtime curve edits reset on reboot or
 module reload. See the validation notes for hardware test coverage.
 
+## GNOME Quick Settings
+
+On GNOME Shell 50, install the optional extension as your desktop user:
+
+```sh
+./gnome-extension/install.sh  # without sudo; log out and back in afterwards
+```
+
+The **USB-C Performance** tile selects your preference. Its subtitle shows whether
+performance is active or waiting for a suitable supply or battery recovery. The
+arrow opens status details and a **Charging profile** selector for Trickle,
+Standard and Long Life. Off selects charging priority; on retains the existing
+charger and battery checks. Your choice persists across reboots. GNOME power modes,
+charging profiles and fan curves remain independent. See [desktop integration](docs/gnome.md).
+
 ## Repository layout
 
 | Directory | Contents |
@@ -35,6 +51,7 @@ module reload. See the validation notes for hardware test coverage.
 | `driver/` | Kernel module and self-contained DKMS build inputs |
 | `userspace/` | Backlight helper, power diagnostics and USB-C policy |
 | `packaging/` | Boot configuration, systemd unit and preference drop-ins |
+| `gnome-extension/` | Optional USB-C Performance Quick Settings tile |
 | `tests/` | Automated tests and deployment comparison; explicit hardware tests in `hardware/` |
 | `tools/` | Manual developer tools |
 | `docs/` | Interfaces, development instructions and historical validation |

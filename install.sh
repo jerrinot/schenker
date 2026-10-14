@@ -44,7 +44,8 @@ save_deployment() {
     backup=$(mktemp -d /var/tmp/schenker-rollback.XXXXXX)
     chmod 0700 "$backup"
     mkdir "$backup/files"
-    saved_paths=("$options_file" "$boot_file" "$helper" "$policy" "$power_helper" "$unit")
+    saved_paths=("$options_file" "$boot_file" "$helper" "$policy" "$power_helper" "$unit"
+                 "$bus_helper" "$bus_config" "$polkit_action")
     local name path
     for name in charging-profile.conf firmware-profile.conf; do
         saved_paths+=("$dropins/$name")
@@ -175,6 +176,7 @@ remove_deployment() {
     dkms remove -m "$package" -v "$version" --all
     systemctl disable "$service" 2>/dev/null || true
     rm -f -- "$boot_file" "$options_file" "$helper" "$policy" "$power_helper" "$unit"
+    rm -f -- "$bus_helper" "$bus_config" "$polkit_action"
     rm -f -- "$dropins/charging-profile.conf" "$dropins/firmware-profile.conf"
     if [[ -d $dropins ]]; then rmdir --ignore-fail-on-non-empty -- "$dropins"; fi
     systemctl daemon-reload
@@ -199,6 +201,9 @@ main() {
     service=schenker-usbc-policy.service
     unit=/etc/systemd/system/$service
     policy=/usr/local/libexec/schenker-usbc-policy.py
+    bus_helper=/usr/local/libexec/schenker_usbc_dbus.py
+    bus_config=/etc/dbus-1/system.d/io.github.jerrinot.Schenker.Power.conf
+    polkit_action=/usr/share/polkit-1/actions/io.github.jerrinot.schenker.policy
     power_helper=/usr/local/sbin/schenker-power
     dropins=$unit.d
     config_state=/var/lib/schenker-kbd/config-defaults
@@ -223,6 +228,9 @@ main() {
         echo "This installer requires the tested model and BIOS N.1.05A09." >&2; exit 1;
     }
     for command in dkms python3 systemctl update-initramfs modinfo; do command -v "$command" >/dev/null; done
+    python3 -c 'from gi.repository import Gio, GLib, GLibUnix' || {
+        echo 'Install python3-gi before installing the USB-C policy.' >&2; exit 1;
+    }
     running_kernel=$(uname -r)
     [[ -f /lib/modules/$running_kernel/build/Makefile ]] || {
         echo "Install headers for the running kernel first." >&2; exit 1;
@@ -288,6 +296,9 @@ main() {
     validate_loaded
     install -D -m 0755 userspace/backlight "$helper"
     install -D -m 0755 userspace/schenker-usbc-policy.py "$policy"
+    install -D -m 0644 userspace/schenker_usbc_dbus.py "$bus_helper"
+    install -D -m 0644 packaging/dbus/io.github.jerrinot.Schenker.Power.conf "$bus_config"
+    install -D -m 0644 packaging/polkit/io.github.jerrinot.schenker.policy "$polkit_action"
     install -D -m 0755 userspace/schenker-power "$power_helper"
     install -D -m 0644 "packaging/systemd/$service" "$unit"
     for config in "packaging/systemd/$service.d/"*.conf; do

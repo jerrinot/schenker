@@ -33,4 +33,12 @@ The JSON files record checks on the VISION E22, BIOS N.1.05A09, EC 1.47:
 - The curve continued running with userspace policy services stopped.
 
 Numeric hwmon paths and sensor readings are snapshots. Physical reboot and
-suspend/resume were not tested. Version 0.7.0 has not been loaded on hardware.
+suspend/resume were not tested in these records.
+
+## Driver 0.7.0 and desktop integration
+
+Version 0.7.0 is installed and running on the VISION E22. The firmware curve is
+active, and the USB-C service restores performance priority with the 100 W supply.
+See [desktop integration validation](desktop.md) for the service, authorization,
+persistence and GNOME Shell checks. These checks do not replace a physical reboot
+or suspend/resume test.

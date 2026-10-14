@@ -1,0 +1,8 @@
+{
+  "uuid": "schenker-usbc@jerrinot",
+  "name": "Schenker USB-C Performance",
+  "description": "Choose USB-C power priority and the battery charging profile.",
+  "shell-version": ["50"],
+  "url": "https://github.com/jerrinot/schenker",
+  "version": 3
+}

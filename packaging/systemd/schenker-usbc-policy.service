@@ -1,10 +1,12 @@
 [Unit]
 Description=SCHENKER VISION E22 USB-C performance policy
-After=systemd-modules-load.service
+After=systemd-modules-load.service dbus.service
+Requires=dbus.service
 ConditionPathExists=/sys/devices/platform/INOU0000:00/usb_c_power_priority
 
 [Service]
-Type=simple
+Type=dbus
+BusName=io.github.jerrinot.Schenker.Power
 ExecStart=/usr/local/libexec/schenker-usbc-policy.py
 Restart=on-failure
 RestartSec=5
@@ -13,6 +15,8 @@ TimeoutStopSec=10
 RuntimeDirectory=schenker-usbc-policy
 RuntimeDirectoryMode=0700
 RuntimeDirectoryPreserve=yes
+StateDirectory=schenker-usbc-policy
+StateDirectoryMode=0700
 UMask=0077
 NoNewPrivileges=yes
 ProtectSystem=full

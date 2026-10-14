@@ -9,6 +9,43 @@ p = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(p)
 
 
+class SupplyBudgetTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.source = Path(self.tmp.name) / 'port0'
+        self.source.mkdir()
+        self.write(online=1, usb_type='C [PD] PD_PPS', voltage_now=20_000_000,
+                   current_max=5_000_000, current_now=5_000_000)
+
+    def write(self, **values):
+        for name, value in values.items():
+            (self.source / name).write_text(str(value))
+
+    def test_uses_requested_current_instead_of_advertised_maximum(self):
+        self.write(current_now=3_000_000)
+        self.assertEqual(p.reported_usb_c_budget([self.source]), 60)
+
+    def test_reports_100w_only_when_both_current_fields_allow_it(self):
+        self.assertEqual(p.reported_usb_c_budget([self.source]), 100)
+        self.write(current_max=3_000_000)
+        self.assertEqual(p.reported_usb_c_budget([self.source]), 60)
+
+    def test_missing_request_current_is_not_replaced_with_advertised_maximum(self):
+        (self.source / 'current_now').unlink()
+        with self.assertRaises(FileNotFoundError):
+            p.reported_usb_c_budget([self.source])
+
+    def test_offline_non_pd_low_voltage_and_zero_current_do_not_qualify(self):
+        for value, restored in (({'online': 0}, {'online': 1}),
+                                ({'usb_type': '[C] PD PD_PPS'}, {'usb_type': 'C [PD] PD_PPS'}),
+                                ({'voltage_now': 5_000_000}, {'voltage_now': 20_000_000}),
+                                ({'current_now': 0}, {'current_now': 5_000_000})):
+            self.write(**value)
+            self.assertEqual(p.reported_usb_c_budget([self.source]), 0)
+            self.write(**restored)
+
+
 class FakeHardware:
     def __init__(self):
         self.priority = 'charging'

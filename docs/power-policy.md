@@ -9,7 +9,8 @@ Without the power-profile drop-in, the Python program defaults to `balanced`,
 which adds a 40 W CPU cap and temperature gating. This is not the installed
 preference. Keep the drop-ins with the service when reproducing this setup.
 
-The policy polls every two seconds and requests performance priority when:
+The policy polls every two seconds and requests performance priority when the
+saved desktop preference is enabled (the default) and:
 
 - The online USB-C PD/PD-PPS source reports at least 19 V and 100 W.
 - Battery charge has not fallen below 30%; after doing so it must recover to 35%.
@@ -20,8 +21,17 @@ Otherwise it selects charging priority. Each performance write renews the driver
 service loses the lease. Firmware mode does not add CPU caps or a temperature
 cutoff. The driver and hardware thermal protections continue to operate.
 
-The charging preference accepts `standard`, `long_life`, `trickle`, or an empty
-value to leave it unmanaged. It restores the selected preference after firmware
+The power budget uses UCSI `voltage_now` multiplied by the smaller of `current_now`
+and `current_max`. For this driver, `current_now` comes from the power request's
+operating current; it is not a measured current draw. `current_max` is the largest
+current across advertised source PDOs and cannot alone establish the selected
+budget. Neither field independently verifies a cable's rating. Firmware reporting
+errors can therefore make the policy overestimate available power. The GNOME menu
+labels this value as reported power, and the service does not claim cable verification.
+
+The charging default accepts `standard`, `long_life`, `trickle`, or an empty
+value to leave it unmanaged. A saved desktop selection overrides this default.
+The service restores the selected preference after firmware
 resets, rate-limits retries and avoids rewriting unchanged state. These profiles
 are firmware choices, not Linux CPU performance profiles.
 
@@ -33,3 +43,5 @@ missing optional attributes are reported as unavailable. Firmware-reported power
 limit readback.
 
 Fan speed is controlled by the firmware curve independently of this service.
+The optional [GNOME Quick Settings tile](gnome.md) changes the saved preference
+through D-Bus; the service owns the preference even when GNOME is not running.

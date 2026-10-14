@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>Schenker laptop controls</vendor>
+  <action id="io.github.jerrinot.schenker.usbc-performance">
+    <description>Change USB-C performance priority</description>
+    <message>Authorization is required to change USB-C performance priority</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+  <action id="io.github.jerrinot.schenker.charging-profile">
+    <description>Change the battery charging profile</description>
+    <message>Authorization is required to change the battery charging profile</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

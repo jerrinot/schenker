@@ -10,4 +10,5 @@ ${CC:-cc} -std=gnu11 -Wall -Wextra -Werror -g -O1 \
 "$test_dir/test_curve"
 SCHENKER_POWER_PROFILE=balanced SCHENKER_CHARGING_PROFILE= \
     python3 -B -m unittest discover -s tests -p 'test_*.py' -v
-bash -n install.sh tools/trial.sh tests/run.sh
+gjs -m tests/test_desktop_ui.js
+bash -n install.sh tools/trial.sh tests/run.sh gnome-extension/install.sh

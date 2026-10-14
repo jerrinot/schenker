@@ -14,6 +14,9 @@ pairs = [(f'driver/{name}', f'/usr/src/schenker-kbd-{version}/{name}') for name 
 pairs += [
     ('userspace/backlight', '/usr/local/bin/schenker-backlight'),
     ('userspace/schenker-usbc-policy.py', '/usr/local/libexec/schenker-usbc-policy.py'),
+    ('userspace/schenker_usbc_dbus.py', '/usr/local/libexec/schenker_usbc_dbus.py'),
+    ('packaging/dbus/io.github.jerrinot.Schenker.Power.conf', '/etc/dbus-1/system.d/io.github.jerrinot.Schenker.Power.conf'),
+    ('packaging/polkit/io.github.jerrinot.schenker.policy', '/usr/share/polkit-1/actions/io.github.jerrinot.schenker.policy'),
     ('userspace/schenker-power', '/usr/local/sbin/schenker-power'),
     ('packaging/schenker-kbd.modprobe.conf', '/etc/modprobe.d/schenker-kbd.conf'),
     ('packaging/schenker-kbd.modules-load.conf', '/etc/modules-load.d/schenker-kbd.conf'),
@@ -22,6 +25,10 @@ pairs += [
 for name in ('charging-profile.conf', 'firmware-profile.conf'):
     rel = f'schenker-usbc-policy.service.d/{name}'
     pairs.append((f'packaging/systemd/{rel}', f'/etc/systemd/system/{rel}'))
+extension = Path.home() / '.local/share/gnome-shell/extensions/schenker-usbc@jerrinot'
+if extension.is_dir():
+    for name in ('metadata.json', 'extension.js', 'presentation.js'):
+        pairs.append((f'gnome-extension/{name}', str(extension / name)))
 failures = []
 for source, destination in pairs:
     try:
